@@ -94,7 +94,7 @@ The estimated number of transactions you can make with your current balance is n
 1. Clone this repository:
 
 ```bash
-git clone https://github.com/getcakedieyoungx/op-claim-bot.git
+git clone https://github.com/getcakedieyoungx/poopzter-claim.git
 cd op-claim-bot
 ```
 
