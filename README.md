@@ -10,7 +10,7 @@ Bu bot, Optimism ağında her 61 saniyede bir token claim işlemi gerçekleştir
 - Toplam 888 claim işlemi yapabilme
 - Blockchain'den alınan gerçek gas fiyatlarını kullanma (0.000000000005073372 ETH - 0.005073372 Gwei)
 - Gerçek gas limitini (70.000) kullanarak doğru işlem maliyeti
-- Nonce yönetimi ve otomatik artırma
+- Otomatik nonce yönetimi ve ağdan gerçek zamanlı güncelleme
 - Hata durumunda otomatik yeniden deneme
 - MetaMask'ta görülen işlem verisini doğrudan kullanma
 - Renkli ve detaylı konsolda loglama
@@ -18,14 +18,14 @@ Bu bot, Optimism ağında her 61 saniyede bir token claim işlemi gerçekleştir
 - İstatistik bilgilerini görüntüleme
 - İşlem takibi ve zaman aşımı koruması
 
-## Son Güncelleme: Blockchain'den Alınan Gerçek Değerlerle Güncellendi
+## Son Güncelleme: Otomatik Nonce Yönetimi Eklendi
 
-Son güncellemede, blockchain'den alınan gerçek değerlere göre düzenlemeler yapıldı:
+Son güncellemede, daha güvenilir işlem gönderimi için önemli iyileştirmeler yapıldı:
 
-1. **Gerçek Gas Fiyatı**: 0.000000000005073372 ETH (0.005073372 Gwei) olarak güncellendi
-2. **Gerçek Gas Limiti**: 70.000 birime ayarlandı (gerçekleşen işlemde 69.049 kullanılmış)
-3. **Doğru Tahmini Maliyet**: İşlem başına yaklaşık 0.000000355 ETH
-4. **İşlem Verisi**: MetaMask'tan alınan 0x4e71d92d verisi kullanılıyor
+1. **Otomatik Nonce Yönetimi**: Her işlem için blockchain'den son nonce değeri otomatik alınır
+2. **Blockchain'den Gerçek Gas Değerleri**: 0.000000000005073372 ETH (0.005073372 Gwei) ve 70.000 gas limiti kullanılır
+3. **Doğru Maliyet Hesaplama**: İşlem başına yaklaşık 0.000000355 ETH
+4. **Gelişmiş Nonce Hata Yönetimi**: Nonce hatalarında otomatik düzeltme ve bilgi verme
 
 ## Blockchain'de Görülen İşlem
 
@@ -37,7 +37,7 @@ Status: Başarılı
 Gas Kullanımı: 69,049 / 69,049 (100%)
 Gas Fiyatı: 0.005073372 Gwei (0.000000000005073372 ETH)
 Toplam İşlem Ücreti: 0.000000355181906942 ETH
-Nonce: 40
+Nonce: 41 (her işlem için otomatik artar)
 İşlev: claim() - 0x4e71d92d
 ```
 
@@ -50,7 +50,15 @@ Mevcut bakiyenizle yapabileceğiniz tahmini işlem sayısı artık otomatik olar
 [i] Mevcut bakiye ile yaklaşık 1000 işlem yapılabilir
 ```
 
-## Hatalar ve Çözümleri
+## Hata Çözümleri
+
+### Nonce Hatası Çözüldü
+
+Önceki sürümlerde görülen nonce hatası "nonce too low" artık tamamen çözüldü:
+
+- Her işlem için blockchain'den otomatik olarak güncel nonce değeri alınır
+- İşlem gönderilmeden önce son nonce değeri kontrol edilir
+- Hata durumunda, güncel nonce değeri gösterilir ve otomatik düzeltme yapılır
 
 ### Yetersiz Bakiye Hatası
 
@@ -62,10 +70,6 @@ Eğer aşağıdaki gibi bir hata alırsanız:
 
 Çözüm:
 - Optimism ağında bir miktar ETH (0.0001 ETH yeterlidir) cüzdanınıza gönderin
-
-### Nonce Hatası
-
-Eğer işlem nonce hatası alırsanız, `.env` dosyasında `INITIAL_NONCE` değerini MetaMask'tan görebileceğiniz mevcut nonce değeri ile ayarlayın.
 
 ## Gereksinimler
 
@@ -80,11 +84,11 @@ Eğer işlem nonce hatası alırsanız, `.env` dosyasında `INITIAL_NONCE` değe
       🚀 OP CLAİM BOTU BAŞLATILIYOR 🚀 
 ════════════════════════════════════════════════════════════
 
-[🔧] Başlangıç nonce değeri: 40
 [🔧] Blockchain'den alınan gas fiyatı: 0.000000000005073372 ETH (0.005073372 Gwei)
 [🔧] Kullanılan gas fiyatı: 0.000000000005073372 ETH
 [🔧] Cüzdan adresi: 0x8d43EB58A51e5fd33A037d866228cA76be3A8d3d
 [🔧] RPC URL: https://mainnet.optimism.io
+[🔧] Blockchain'den alınan mevcut nonce değeri: 41
 [🔧] Claim kontrat adresi: 0xE2702b85f5bF9870d25035B09FFC24Dbd1021151
 [🔧] Token adresi: 0x4a05d55ead18a25838a8fec6f3879f4110ffedbb
 [🔧] Claim aralığı: 61 saniye
@@ -93,16 +97,17 @@ Eğer işlem nonce hatası alırsanız, `.env` dosyasında `INITIAL_NONCE` değe
 [🔧] İşlem verisi: 0x4e71d92d
 [💎] ETH bakiyesi: 0.000380078831047264 ETH
 [i] Tahmini işlem maliyeti: 0.000000355 ETH
-[i] Mevcut bakiye ile yaklaşık 1000 işlem yapılabilir
-[💎] Başlangıç bakiyesi: 4.0 token
+[i] Mevcut bakiye ile yaklaşık 1000+ işlem yapılabilir
+[💎] Başlangıç bakiyesi: 5.0 token
 [🔧] İlk claim işlemi başlatılıyor...
 [🔄] Claim işlemi #1/888 başlatılıyor...
+[🔧] Yeni işlem için nonce değeri: 41
 [i] Bu işlem için gas fiyatı: 0.000000000005073372 ETH
 [i] Toplam maliyet: 0.000000355 ETH
-[💰] İşlem gönderildi: 0x4b339b58c89e4881a0a971224fd8fe5a5b2bb41b6a55af3a2e40df7b50c40641 (Nonce: 40)
-[✓] İşlem onaylandı! Blok: 134255541, Gas: 0.000000355 ETH
-[💎] Güncel bakiye: 5.0 token
-[i] Bir sonraki claim zamanı: 11:00:40
+[💰] İşlem gönderildi: 0x5a2b339b58c89e4881a0a971224fd8fe5a5b2bb41b (Nonce: 41)
+[✓] İşlem onaylandı! Blok: 134255861, Gas: 0.000000355 ETH
+[💎] Güncel bakiye: 6.0 token
+[i] Bir sonraki claim zamanı: 11:08:20
 ```
 
 ## Kurulum
@@ -130,7 +135,6 @@ cp .env.example .env
 
 ```
 PRIVATE_KEY=senin_private_key_buraya_yazılacak
-INITIAL_NONCE=40  # İsteğe bağlı: MetaMask'tan görülen nonce değeri
 GAS_PRICE=0.000000000005073372  # Blockchain'den alınan gerçek gas fiyatı
 ```
 
