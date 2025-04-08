@@ -1,8 +1,7 @@
-# OP Claim Bot
+# Poopzter
 
 This bot is designed to perform token claim operations on the Optimism network every 61 seconds. It can automatically execute 888 claim operations using real gas values obtained from the blockchain.
 
-![OP Logo](https://optimism.io/assets/images/red-op.svg)
 
 ## Features
 
@@ -50,26 +49,6 @@ The estimated number of transactions you can make with your current balance is n
 [i] Approximately 1000 transactions possible with current balance
 ```
 
-## Error Solutions
-
-### Nonce Error Solved
-
-The "nonce too low" error seen in previous versions has been completely resolved:
-
-- Current nonce value is automatically obtained from the blockchain for each transaction
-- The latest nonce value is checked before sending a transaction
-- In case of an error, the current nonce value is displayed and automatically corrected
-
-### Insufficient Balance Error
-
-If you receive an error like this:
-
-```
-[✗] Insufficient ETH balance. Transaction cost: 0.000000355 ETH, Balance: 0.0000001 ETH
-```
-
-Solution:
-- Send some ETH to your wallet on Optimism network (0.0001 ETH is usually sufficient)
 
 ## Requirements
 
@@ -172,6 +151,16 @@ The bot displays the following statistics:
 ## To Stop
 
 To stop the running bot, press `Ctrl+C` in the console. The bot will display a statistics summary before shutting down properly.
+
+##  Join tg, I will post bots there too.
+T.me/getcakedieyoungx
+
+
+## For donations and buying me a coffee:
+EVM: 0xE065339713A8D9BF897d595ED89150da521a7d09
+
+SOLANA: CcBPMkpMbZ4TWE8HeUWyv9CkEVqPLJ5gYe163g5SR4Vf
+
 
 ## Security Warnings
 
