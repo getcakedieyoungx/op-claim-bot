@@ -11,6 +11,8 @@ const CLAIM_INTERVAL = 61000; // 61 saniye
 const TOTAL_CLAIMS = 888;
 const TRANSACTION_TIMEOUT = 60000; // 60 saniye işlem bekleme süresi
 const MAX_RETRIES = 3; // İşlem başına maksimum yeniden deneme sayısı
+const GAS_LIMIT = 70000; // Daha düşük gas limiti
+const GAS_PRICE = ethers.utils.parseUnits('0.00000063', 'ether'); // Site tarafından önerilen gas fiyatı
 
 // Log dizini oluştur
 const LOG_DIR = path.join(__dirname, 'logs');
@@ -167,6 +169,13 @@ async function main() {
       process.exit(1);
     }
     
+    // Nonce değeri çevreden alınabiliyor mu diye kontrol et
+    let initialNonce = process.env.INITIAL_NONCE;
+    if (initialNonce) {
+      initialNonce = parseInt(initialNonce, 10);
+      log(`Başlangıç nonce değeri: ${initialNonce}`, 'system');
+    }
+    
     const rpcUrl = 'https://mainnet.optimism.io';
     const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
     const wallet = new ethers.Wallet(privateKey, provider);
@@ -177,6 +186,23 @@ async function main() {
     log(`Token adresi: ${TOKEN_ADDRESS}`, 'system');
     log(`Claim aralığı: ${CLAIM_INTERVAL / 1000} saniye`, 'system');
     log(`Hedef claim sayısı: ${TOTAL_CLAIMS}`, 'system');
+    log(`Gas limiti: ${GAS_LIMIT}`, 'system');
+    log(`Gas fiyatı: ${ethers.utils.formatEther(GAS_PRICE)} ETH`, 'system');
+    
+    // Cüzdan bakiyesi kontrolü
+    const ethBalance = await provider.getBalance(wallet.address);
+    log(`ETH bakiyesi: ${ethers.utils.formatEther(ethBalance)} ETH`, 'balance');
+    
+    if (ethBalance.lt(GAS_PRICE.mul(GAS_LIMIT).mul(10))) {
+      log('Uyarı: Cüzdanda çok az ETH var. En az 10 işlem için yeterli bakiye bulundurun.', 'warning');
+    }
+    
+    // Nonce değerini al
+    let currentNonce = initialNonce;
+    if (!currentNonce) {
+      currentNonce = await provider.getTransactionCount(wallet.address);
+      log(`Mevcut nonce değeri: ${currentNonce}`, 'system');
+    }
     
     // Kontrat bağlantıları
     const claimContract = new ethers.Contract(CLAIM_CONTRACT_ADDRESS, CLAIM_ABI, wallet);
@@ -205,17 +231,14 @@ async function main() {
           showStats();
         }
         
-        // Gas fiyatlarını kontrol et
-        const feeData = await provider.getFeeData();
-        
         // Claim işlemini gerçekleştir
         const tx = await claimContract.claim({
-          gasLimit: 150000,
-          maxFeePerGas: feeData.maxFeePerGas || ethers.utils.parseUnits('0.001', 'gwei'),
-          maxPriorityFeePerGas: feeData.maxPriorityFeePerGas || ethers.utils.parseUnits('0.001', 'gwei')
+          gasLimit: GAS_LIMIT,
+          gasPrice: GAS_PRICE,
+          nonce: currentNonce + claimCount
         });
         
-        log(`İşlem gönderildi: ${tx.hash}`, 'transaction');
+        log(`İşlem gönderildi: ${tx.hash} (Nonce: ${currentNonce + claimCount})`, 'transaction');
         
         // İşlemin tamamlanmasını bekle (zaman aşımı ile)
         const receipt = await waitForTransaction(provider, tx.hash);
@@ -244,9 +267,19 @@ async function main() {
         log(`Claim işlemi sırasında hata oluştu: ${error.message}`, 'error');
         stats.failedClaims++;
         
+        // Hata mesajını daha detaylı göster
+        if (error.code === 'INSUFFICIENT_FUNDS') {
+          log('ETH bakiyesi yetersiz. Cüzdanınıza biraz ETH eklemelisiniz.', 'error');
+        }
+        
         // Belirli bir sayıya kadar yeniden dene
         if (retryCount < MAX_RETRIES) {
           log(`Yeniden deneniyor (${retryCount + 1}/${MAX_RETRIES})...`, 'warning');
+          
+          // Yeniden denemede gas fiyatını biraz daha düşür
+          GAS_PRICE = GAS_PRICE.mul(9).div(10); // %10 daha düşük
+          log(`Gas fiyatı düşürüldü: ${ethers.utils.formatEther(GAS_PRICE)} ETH`, 'system');
+          
           setTimeout(() => performClaim(retryCount + 1), 10000);  // 10 saniye sonra tekrar dene
         } else {
           log('Maksimum yeniden deneme sayısına ulaşıldı. Bir sonraki claim işlemine geçiliyor...', 'warning');
