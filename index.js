@@ -155,8 +155,12 @@ async function waitForTransaction(provider, txHash, timeout = TRANSACTION_TIMEOU
 }
 
 // Raw Transaction ile claim işlemi gerçekleştir
-async function sendClaimTransaction(wallet, provider, nonce, gasPrice) {
+async function sendClaimTransaction(wallet, provider, gasPrice) {
   try {
+    // Her işlem için yeni nonce değeri al
+    const nonce = await provider.getTransactionCount(wallet.address, "latest");
+    log(`Yeni işlem için nonce değeri: ${nonce}`, 'system');
+    
     // Raw transaction ile işlem gönderme
     const tx = {
       to: CLAIM_CONTRACT_ADDRESS,
@@ -189,13 +193,6 @@ async function main() {
     if (!privateKey) {
       log('Lütfen .env dosyasında PRIVATE_KEY tanımlayın!', 'error');
       process.exit(1);
-    }
-    
-    // Nonce değeri çevreden alınabiliyor mu diye kontrol et
-    let initialNonce = process.env.INITIAL_NONCE;
-    if (initialNonce) {
-      initialNonce = parseInt(initialNonce, 10);
-      log(`Başlangıç nonce değeri: ${initialNonce}`, 'system');
     }
     
     // Özel RPC ve gas fiyatı ayarları
@@ -245,12 +242,9 @@ async function main() {
       log('Eğer işlem başarısız olursa, cüzdanınıza biraz ETH eklemenizi öneririz.', 'info');
     }
     
-    // Nonce değerini al
-    let currentNonce = initialNonce;
-    if (!currentNonce) {
-      currentNonce = await provider.getTransactionCount(wallet.address);
-      log(`Mevcut nonce değeri: ${currentNonce}`, 'system');
-    }
+    // Mevcut nonce değerini kontrol et
+    const currentNonce = await provider.getTransactionCount(wallet.address);
+    log(`Blockchain'den alınan mevcut nonce değeri: ${currentNonce}`, 'system');
     
     // Token kontratı tanımla (bakiye kontrolü için)
     const tokenContract = new ethers.Contract(TOKEN_ADDRESS, ERC20_ABI, provider);
@@ -302,10 +296,10 @@ async function main() {
         log(`Bu işlem için gas fiyatı: ${ethers.utils.formatEther(gasPrice)} ETH`, 'info');
         log(`Toplam maliyet: ${ethers.utils.formatEther(txCost)} ETH`, 'info');
         
-        // Raw transaction kullanarak claim işlemini gerçekleştir
-        const tx = await sendClaimTransaction(wallet, provider, currentNonce + claimCount, gasPrice);
+        // Raw transaction kullanarak claim işlemini gerçekleştir (nonce otomatik alınacak)
+        const tx = await sendClaimTransaction(wallet, provider, gasPrice);
         
-        log(`İşlem gönderildi: ${tx.hash} (Nonce: ${currentNonce + claimCount})`, 'transaction');
+        log(`İşlem gönderildi: ${tx.hash} (Nonce: ${tx.nonce})`, 'transaction');
         
         // İşlemin tamamlanmasını bekle (zaman aşımı ile)
         const receipt = await waitForTransaction(provider, tx.hash);
@@ -329,9 +323,22 @@ async function main() {
         // Bir sonraki claim için zamanlayıcı ayarla
         const nextTime = new Date(Date.now() + CLAIM_INTERVAL);
         log(`Bir sonraki claim zamanı: ${nextTime.toLocaleTimeString()}`, 'info');
-        setTimeout(() => performClaim(0), CLAIM_INTERVAL); // Her seferinde ilk gas fiyatıyla başla
+        setTimeout(() => performClaim(0), CLAIM_INTERVAL);
       } catch (error) {
         log(`Claim işlemi sırasında hata oluştu: ${error.message}`, 'error');
+        
+        // Hata nonce ile ilgiliyse daha net bilgi ver
+        if (error.message.includes('nonce')) {
+          log('Nonce hatası tespit edildi. Yeni nonce değeri alınıyor...', 'warning');
+          
+          try {
+            const newNonce = await provider.getTransactionCount(wallet.address, "latest");
+            log(`Güncel nonce değeri: ${newNonce}`, 'system');
+          } catch (nonceError) {
+            log(`Nonce kontrolü sırasında hata: ${nonceError.message}`, 'error');
+          }
+        }
+        
         stats.failedClaims++;
         
         // Hata mesajını daha detaylı göster
