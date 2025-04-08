@@ -1,6 +1,6 @@
 # OP Claim Bot
 
-Bu bot, Optimism ağında her 61 saniyede bir token claim işlemi gerçekleştirmek için tasarlanmıştır. Ultra düşük gas ücretleriyle otomatik olarak 888 kez claim işlemi yapabilir.
+Bu bot, Optimism ağında her 61 saniyede bir token claim işlemi gerçekleştirmek için tasarlanmıştır. Site tarafından önerilen gas ücretleriyle otomatik olarak 888 kez claim işlemi yapabilir.
 
 ![OP Logo](https://optimism.io/assets/images/red-op.svg)
 
@@ -8,8 +8,7 @@ Bu bot, Optimism ağında her 61 saniyede bir token claim işlemi gerçekleştir
 
 - 61 saniyede bir otomatik claim işlemi
 - Toplam 888 claim işlemi yapabilme
-- Ultra düşük gas ücretleriyle işlem yapma (0.000000005 ETH)
-- Akıllı gas fiyatı ayarlama - bakiyenize göre otomatik hesaplama
+- Site tarafından önerilen gas fiyatını kullanma (0.00000063 ETH)
 - Standart gas limiti (21.000) ile minimum işlem maliyeti
 - Nonce yönetimi ve otomatik artırma
 - Hata durumunda otomatik yeniden deneme
@@ -19,19 +18,28 @@ Bu bot, Optimism ağında her 61 saniyede bir token claim işlemi gerçekleştir
 - İstatistik bilgilerini görüntüleme
 - İşlem takibi ve zaman aşımı koruması
 
-## Son Güncelleme: Çok Düşük Bakiye İçin Çözüm
+## Son Güncelleme: Site Önerilerine Göre Ayarlandı
 
-Son güncellemede, çok düşük bakiyeli hesaplar için şu iyileştirmeler yapıldı:
+Son güncellemede, sitenin önerdiği değerlere göre düzenlemeler yapıldı:
 
-1. **Gas limiti düşürüldü**: 21.000 birime düşürüldü (Ethereum'da standart transfer değeri)
-2. **Gas fiyatı ultra düşük seviyeye indirildi**: 0.000000005 ETH (5 gwei)
-3. **Akıllı gas fiyatı ayarlama**: Bakiyenize göre otomatik gas fiyatı hesaplanması
-4. **Daha hassas işlem maliyeti hesaplaması**: Gerçekçi maliyet hesaplaması ve görüntüleme
+1. **Site önerisi gas fiyatı**: 0.00000063 ETH olarak ayarlandı
+2. **Gas limiti düşürüldü**: 21.000 birime düşürüldü (Ethereum'da standart transfer değeri)
+3. **Tahmini maliyet**: İşlem başına yaklaşık 0.00001323 ETH (GasLimit * GasPrice)
+4. **İşlem verisi**: MetaMask'tan alınan 0x4e71d92d verisi kullanılıyor
 
-Bu değişikliklerle, çok düşük bakiyeye sahip cüzdanlar bile işlem yapabilir. Örneğin:
-- 0.0001 ETH bakiye ile 4-5 işlem gerçekleştirilebilir
-- Bot bakiyenizi kontrol eder ve ona göre en düşük gas fiyatını otomatik olarak ayarlar
-- İşlemler her zaman cüzdan bakiyesinin %90'ından az maliyette gerçekleştirilir
+## Site Bilgileri
+
+Claim ekranında görülen değerler:
+
+```
+Ağ ücreti: 0 ETH < $0,01
+L1 ücreti: 0 ETH < $0,01
+L2 ücreti: 0 ETH < $0,01
+Hız: 🌐 Site önerisi ~2 sn
+Maks. ücret: 0.00000063 ETH < $0,01
+Nonce: 40
+İşlev: claim (0x4e71d92d)
+```
 
 ## Hatalar ve Çözümleri
 
@@ -40,23 +48,12 @@ Bu değişikliklerle, çok düşük bakiyeye sahip cüzdanlar bile işlem yapabi
 Eğer aşağıdaki gibi bir hata alırsanız:
 
 ```
-[✗] ETH bakiyesi yetersiz. İşlem maliyeti: 0.0000001 ETH, Bakiye: 0.00000008 ETH
+[✗] ETH bakiyesi yetersiz. İşlem maliyeti: 0.00001323 ETH, Bakiye: 0.00000008 ETH
 ```
 
-Bot şimdi otomatik olarak bakiyeye göre gas fiyatını ayarlayacak:
-
-```
-[!] Gas fiyatını bakiyeye göre ayarlıyorum: 0.000000003 ETH
-```
-
-Yine de bakiye çok düşükse, birkaç çözüm:
-
-1. **Cüzdanınıza ETH ekleyin**: Optimism ağında çok az miktarda ETH (0.0001 ETH bile yeterli) cüzdanınıza gönderin
-2. **Daha düşük gas fiyatı kullanın**: `.env` dosyasında GAS_PRICE değerini daha da düşürün:
-
-```
-GAS_PRICE=0.000000001
-```
+Tek çözüm cüzdanınıza ETH eklemektir:
+- Optimism ağında bir miktar ETH (0.0001 ETH yeterlidir) cüzdanınıza gönderin
+- Site önerilerine göre ayarlandığı için gas fiyatını değiştirmiyoruz
 
 ### Nonce Hatası
 
@@ -76,7 +73,8 @@ Eğer işlem nonce hatası alırsanız, `.env` dosyasında `INITIAL_NONCE` değe
 ════════════════════════════════════════════════════════════
 
 [🔧] Başlangıç nonce değeri: 40
-[🔧] Gas fiyatı: 0.000000005 ETH
+[🔧] Site önerisi gas fiyatı: 0.00000063 ETH
+[🔧] Kullanılan gas fiyatı: 0.00000063 ETH
 [🔧] Cüzdan adresi: 0x8d43EB58A51e5fd33A037d866228cA76be3A8d3d
 [🔧] RPC URL: https://mainnet.optimism.io
 [🔧] Claim kontrat adresi: 0xE2702b85f5bF9870d25035B09FFC24Dbd1021151
@@ -86,16 +84,16 @@ Eğer işlem nonce hatası alırsanız, `.env` dosyasında `INITIAL_NONCE` değe
 [🔧] Gas limiti: 21000
 [🔧] İşlem verisi: 0x4e71d92d
 [💎] ETH bakiyesi: 0.000380078831047264 ETH
-[i] Tahmini işlem maliyeti: 0.000000105 ETH
+[i] Tahmini işlem maliyeti: 0.00001323 ETH
 [💎] Başlangıç bakiyesi: 4.0 token
 [🔧] İlk claim işlemi başlatılıyor...
 [🔄] Claim işlemi #1/888 başlatılıyor...
-[i] Bu işlem için gas fiyatı: 0.000000005 ETH
-[i] Toplam maliyet: 0.000000105 ETH
+[i] Bu işlem için gas fiyatı: 0.00000063 ETH
+[i] Toplam maliyet: 0.00001323 ETH
 [💰] İşlem gönderildi: 0xa1b2c3... (Nonce: 40)
-[✓] İşlem onaylandı! Blok: 134281024, Gas: 0.000000095 ETH
+[✓] İşlem onaylandı! Blok: 134281024, Gas: 0.00001323 ETH
 [💎] Güncel bakiye: 5.0 token
-[i] Bir sonraki claim zamanı: 10:51:23
+[i] Bir sonraki claim zamanı: 10:56:42
 ```
 
 ## Kurulum
@@ -124,7 +122,7 @@ cp .env.example .env
 ```
 PRIVATE_KEY=senin_private_key_buraya_yazılacak
 INITIAL_NONCE=40  # İsteğe bağlı: MetaMask'tan görülen nonce değeri
-GAS_PRICE=0.000000005  # İsteğe bağlı: Gas fiyatını ayarlama
+GAS_PRICE=0.00000063  # Site önerisi gas fiyatı
 ```
 
 ## Kullanım
@@ -140,7 +138,6 @@ Bot çalışmaya başladığında:
 - 'logs' klasöründe her çalıştırma için log dosyası oluşturulur
 - Her 10 claimde bir istatistik raporu gösterilir
 - Hata durumlarında otomatik yeniden deneme yapılır
-- Düşük bakiye durumunda gas fiyatı otomatik olarak düşürülür
 
 ## İstatistikler
 
@@ -154,7 +151,7 @@ Bot, aşağıdaki istatistikleri gösterir:
 ✅ Başarılı Claimler:  10
 ❌ Başarısız Claimler: 0
 🔄 Toplam Claimler:    10
-⛽ Toplam Gas:         0.00000095 ETH
+⛽ Toplam Gas:         0.0001323 ETH
 💰 Kazanılan Token:    10.0 token
 ══════════════════════════════════════
 ```
