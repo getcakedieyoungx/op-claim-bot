@@ -17,28 +17,6 @@ This bot is designed to perform token claim operations on the Optimism network e
 - Displays statistics
 - Transaction tracking and timeout protection
 
-## Latest Update: Automatic Nonce Management Added
-
-In the latest update, important improvements have been made for more reliable transaction sending:
-
-1. **Automatic Nonce Management**: Latest nonce value is automatically obtained from the blockchain for each transaction
-2. **Real Gas Values from Blockchain**: Uses 0.000000000005073372 ETH (0.005073372 Gwei) and 70,000 gas limit
-3. **Accurate Cost Calculation**: Approximately 0.000000355 ETH per transaction
-4. **Advanced Nonce Error Handling**: Automatic correction and information for nonce errors
-
-## Transaction Seen on Blockchain
-
-By examining the real transaction details, the following values were obtained exactly:
-
-```
-Transaction Hash: 0x4b339b58c89e4881a0a971224fd8fe5a5b2bb41b6a55af3a2e40df7b50c40641
-Status: Success
-Gas Usage: 69,049 / 69,049 (100%)
-Gas Price: 0.005073372 Gwei (0.000000000005073372 ETH)
-Total Transaction Fee: 0.000000355181906942 ETH
-Nonce: 41 (automatically increments for each transaction)
-Function: claim() - 0x4e71d92d
-```
 
 ## Transactions Possible with Current Balance
 
@@ -56,38 +34,7 @@ The estimated number of transactions you can make with your current balance is n
 - ETH balance on Optimism network (0.0001 ETH is usually enough for transaction fees)
 - A token claim entitlement
 
-## Screenshot
 
-```
-════════════════════════════════════════════════════════════
-      🚀 OP CLAIM BOT STARTING 🚀 
-════════════════════════════════════════════════════════════
-
-[🔧] Gas price from blockchain: 0.000000000005073372 ETH (0.005073372 Gwei)
-[🔧] Using gas price: 0.000000000005073372 ETH
-[🔧] Wallet address: 0x8d43EB58A51e5fd33A037d866228cA76be3A8d3d
-[🔧] RPC URL: https://mainnet.optimism.io
-[🔧] Current nonce value from blockchain: 41
-[🔧] Claim contract address: 0xE2702b85f5bF9870d25035B09FFC24Dbd1021151
-[🔧] Token address: 0x4a05d55ead18a25838a8fec6f3879f4110ffedbb
-[🔧] Claim interval: 61 seconds
-[🔧] Target claim count: 888
-[🔧] Gas limit: 70000
-[🔧] Transaction data: 0x4e71d92d
-[💎] ETH balance: 0.000380078831047264 ETH
-[i] Estimated transaction cost: 0.000000355 ETH
-[i] Approximately 1000+ transactions possible with current balance
-[💎] Starting balance: 5.0 tokens
-[🔧] Starting first claim operation...
-[🔄] Starting claim operation #1/888...
-[🔧] Nonce value for new transaction: 41
-[i] Gas price for this transaction: 0.000000000005073372 ETH
-[i] Total cost: 0.000000355 ETH
-[💰] Transaction sent: 0x5a2b339b58c89e4881a0a971224fd8fe5a5b2bb41b (Nonce: 41)
-[✓] Transaction confirmed! Block: 134255861, Gas: 0.000000355 ETH
-[💎] Current balance: 6.0 tokens
-[i] Next claim time: 11:08:20
-```
 
 ## Installation
 
