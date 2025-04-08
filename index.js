@@ -12,6 +12,7 @@ const TOTAL_CLAIMS = 888;
 const TRANSACTION_TIMEOUT = 60000; // 60 saniye işlem bekleme süresi
 const MAX_RETRIES = 3; // İşlem başına maksimum yeniden deneme sayısı
 const GAS_LIMIT = 50000; // Daha da düşük gas limiti
+const CLAIM_FUNCTION_DATA = '0x4e71d92d'; // MetaMask'tan alınan gerçek işlem verisi
 
 // Log dizini oluştur
 const LOG_DIR = path.join(__dirname, 'logs');
@@ -61,7 +62,7 @@ function log(message, type = 'info') {
   fs.appendFileSync(LOG_FILE, fileMessage + '\n');
 }
 
-// ABI tanımları
+// ABI tanımları - İsteğe bağlı, doğrudan işlem verisi kullanılıyor
 const CLAIM_ABI = [
   {
     "inputs": [],
@@ -152,6 +153,27 @@ async function waitForTransaction(provider, txHash, timeout = TRANSACTION_TIMEOU
   });
 }
 
+// Raw Transaction ile claim işlemi gerçekleştir
+async function sendClaimTransaction(wallet, provider, nonce, gasPrice) {
+  try {
+    // Raw transaction ile işlem gönderme
+    const tx = {
+      to: CLAIM_CONTRACT_ADDRESS,
+      data: CLAIM_FUNCTION_DATA,
+      nonce: nonce,
+      gasLimit: GAS_LIMIT,
+      gasPrice: gasPrice,
+      chainId: 10 // Optimism chain ID
+    };
+    
+    const signedTx = await wallet.signTransaction(tx);
+    const txResponse = await provider.sendTransaction(signedTx);
+    return txResponse;
+  } catch (error) {
+    throw error;
+  }
+}
+
 // Ana fonksiyon
 async function main() {
   try {
@@ -177,7 +199,7 @@ async function main() {
     
     // Özel RPC ve gas fiyatı ayarları
     let rpcUrl = process.env.RPC_URL || 'https://mainnet.optimism.io';
-    let gasPrice = ethers.utils.parseUnits(process.env.GAS_PRICE || '0.00000025', 'ether'); // Çok daha düşük gas fiyatı
+    let gasPrice = ethers.utils.parseUnits(process.env.GAS_PRICE || '0.00000010', 'ether'); // Çok daha düşük gas fiyatı
     
     log(`Gas fiyatı: ${ethers.utils.formatEther(gasPrice)} ETH`, 'system');
     
@@ -191,6 +213,7 @@ async function main() {
     log(`Claim aralığı: ${CLAIM_INTERVAL / 1000} saniye`, 'system');
     log(`Hedef claim sayısı: ${TOTAL_CLAIMS}`, 'system');
     log(`Gas limiti: ${GAS_LIMIT}`, 'system');
+    log(`İşlem verisi: ${CLAIM_FUNCTION_DATA}`, 'system');
     
     // Cüzdan bakiyesi kontrolü
     const ethBalance = await provider.getBalance(wallet.address);
@@ -211,8 +234,7 @@ async function main() {
       log(`Mevcut nonce değeri: ${currentNonce}`, 'system');
     }
     
-    // Kontrat bağlantıları
-    const claimContract = new ethers.Contract(CLAIM_CONTRACT_ADDRESS, CLAIM_ABI, wallet);
+    // Token kontratı tanımla (bakiye kontrolü için)
     const tokenContract = new ethers.Contract(TOKEN_ADDRESS, ERC20_ABI, provider);
     
     // Başlangıç bakiyesini kontrol et
@@ -271,12 +293,8 @@ async function main() {
         // Gas fiyatını loglama
         log(`Bu işlem için gas fiyatı: ${ethers.utils.formatEther(currentGasPrice)} ETH`, 'info');
         
-        // Claim işlemini gerçekleştir
-        const tx = await claimContract.claim({
-          gasLimit: GAS_LIMIT,
-          gasPrice: currentGasPrice,
-          nonce: currentNonce + claimCount
-        });
+        // Raw transaction kullanarak claim işlemini gerçekleştir
+        const tx = await sendClaimTransaction(wallet, provider, currentNonce + claimCount, currentGasPrice);
         
         log(`İşlem gönderildi: ${tx.hash} (Nonce: ${currentNonce + claimCount})`, 'transaction');
         
