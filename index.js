@@ -11,7 +11,7 @@ const CLAIM_INTERVAL = 61000; // 61 saniye
 const TOTAL_CLAIMS = 888;
 const TRANSACTION_TIMEOUT = 60000; // 60 saniye işlem bekleme süresi
 const MAX_RETRIES = 3; // İşlem başına maksimum yeniden deneme sayısı
-const GAS_LIMIT = 50000; // Daha da düşük gas limiti
+const GAS_LIMIT = 21000; // Standart işlem gas limiti - daha da düşük
 const CLAIM_FUNCTION_DATA = '0x4e71d92d'; // MetaMask'tan alınan gerçek işlem verisi
 
 // Log dizini oluştur
@@ -199,7 +199,7 @@ async function main() {
     
     // Özel RPC ve gas fiyatı ayarları
     let rpcUrl = process.env.RPC_URL || 'https://mainnet.optimism.io';
-    let gasPrice = ethers.utils.parseUnits(process.env.GAS_PRICE || '0.00000010', 'ether'); // Çok daha düşük gas fiyatı
+    let gasPrice = ethers.utils.parseUnits(process.env.GAS_PRICE || '0.000000005', 'ether'); // Ultra düşük gas fiyatı
     
     log(`Gas fiyatı: ${ethers.utils.formatEther(gasPrice)} ETH`, 'system');
     
@@ -219,12 +219,26 @@ async function main() {
     const ethBalance = await provider.getBalance(wallet.address);
     log(`ETH bakiyesi: ${ethers.utils.formatEther(ethBalance)} ETH`, 'balance');
     
-    // Minimum gerekli ETH miktarı
-    const minimumEth = gasPrice.mul(GAS_LIMIT).mul(10);
+    // İşlem maliyeti
+    const txCost = gasPrice.mul(GAS_LIMIT);
+    log(`Tahmini işlem maliyeti: ${ethers.utils.formatEther(txCost)} ETH`, 'info');
+    
+    // Minimum gerekli ETH miktarı - 1 işlem için yeterli olsun
+    const minimumEth = txCost;
     
     if (ethBalance.lt(minimumEth)) {
-      log(`Uyarı: Cüzdanda çok az ETH var. En az 10 işlem için ${ethers.utils.formatEther(minimumEth)} ETH gerekli.`, 'warning');
-      log(`Tahmini işlem maliyeti: ${ethers.utils.formatEther(gasPrice.mul(GAS_LIMIT))} ETH`, 'info');
+      log(`Uyarı: Cüzdanda çok az ETH var. İşlem maliyeti: ${ethers.utils.formatEther(minimumEth)} ETH, Bakiye: ${ethers.utils.formatEther(ethBalance)} ETH`, 'warning');
+      
+      // Gas fiyatını bakiyeye göre ayarla - mümkün olduğunca düşük
+      const maxAffordableGasPrice = ethBalance.div(GAS_LIMIT);
+      
+      if (maxAffordableGasPrice.gt(ethers.utils.parseUnits('0.000000001', 'ether'))) {
+        gasPrice = maxAffordableGasPrice.mul(9).div(10); // Bakiyenin %90'ını kullan
+        log(`Gas fiyatı bakiyeye göre ayarlandı: ${ethers.utils.formatEther(gasPrice)} ETH`, 'system');
+        log(`Yeni tahmini işlem maliyeti: ${ethers.utils.formatEther(gasPrice.mul(GAS_LIMIT))} ETH`, 'info');
+      } else {
+        log('Cüzdanda çok az ETH var, işlem yapılamayabilir.', 'error');
+      }
     }
     
     // Nonce değerini al
@@ -266,17 +280,23 @@ async function main() {
         
         if (currentEthBalance.lt(txCost)) {
           log(`ETH bakiyesi yetersiz. İşlem maliyeti: ${ethers.utils.formatEther(txCost)} ETH, Bakiye: ${ethers.utils.formatEther(currentEthBalance)} ETH`, 'error');
-          log('Gas fiyatını düşürüyorum ve yeniden deniyorum...', 'warning');
           
-          // Gas fiyatını yarıya düşür
-          const lowerGasPrice = currentGasPrice.div(2);
+          // Bakiyeye göre gas fiyatını ayarla
+          const maxAffordableGasPrice = currentEthBalance.div(GAS_LIMIT);
           
-          if (lowerGasPrice.lt(ethers.utils.parseUnits('0.000000001', 'ether'))) {
+          if (maxAffordableGasPrice.gt(ethers.utils.parseUnits('0.0000000001', 'ether'))) {
+            const lowerGasPrice = maxAffordableGasPrice.mul(9).div(10); // Bakiyenin %90'ını kullan
+            log(`Gas fiyatını bakiyeye göre ayarlıyorum: ${ethers.utils.formatEther(lowerGasPrice)} ETH`, 'warning');
+            
+            setTimeout(() => performClaim(retryCount + 1, lowerGasPrice), 5000);
+            return;
+          } else {
             log('Gas fiyatı çok düşük. Daha fazla düşürülemez.', 'error');
+            log('Cüzdanınıza biraz daha ETH eklemelisiniz.', 'warning');
             
             if (retryCount < MAX_RETRIES) {
               log(`Yeniden deneniyor (${retryCount + 1}/${MAX_RETRIES})...`, 'warning');
-              setTimeout(() => performClaim(retryCount + 1, lowerGasPrice), 10000);
+              setTimeout(() => performClaim(retryCount + 1, currentGasPrice), 10000);
             } else {
               log('Maksimum yeniden deneme sayısına ulaşıldı. Bir sonraki claim işlemine geçiliyor...', 'warning');
               claimCount++;
@@ -284,14 +304,11 @@ async function main() {
             }
             return;
           }
-          
-          log(`Gas fiyatı düşürüldü: ${ethers.utils.formatEther(lowerGasPrice)} ETH`, 'system');
-          setTimeout(() => performClaim(retryCount + 1, lowerGasPrice), 5000);
-          return;
         }
         
         // Gas fiyatını loglama
         log(`Bu işlem için gas fiyatı: ${ethers.utils.formatEther(currentGasPrice)} ETH`, 'info');
+        log(`Toplam maliyet: ${ethers.utils.formatEther(txCost)} ETH`, 'info');
         
         // Raw transaction kullanarak claim işlemini gerçekleştir
         const tx = await sendClaimTransaction(wallet, provider, currentNonce + claimCount, currentGasPrice);
@@ -325,22 +342,32 @@ async function main() {
         log(`Claim işlemi sırasında hata oluştu: ${error.message}`, 'error');
         stats.failedClaims++;
         
-        // Hata mesajını daha detaylı göster
+        // Gas fiyatını bakiyeye göre ayarla ve tekrar dene
         if (error.code === 'INSUFFICIENT_FUNDS') {
-          log('ETH bakiyesi yetersiz. Cüzdanınıza biraz ETH eklemelisiniz.', 'error');
+          log('ETH bakiyesi yetersiz. Cüzdanınıza biraz ETH eklemelisiniz veya gas fiyatını düşürün.', 'error');
           
-          // Gas fiyatını düşürmeyi dene
-          const lowerGasPrice = currentGasPrice.div(2);
-          log(`Gas fiyatını düşürüyorum: ${ethers.utils.formatEther(lowerGasPrice)} ETH`, 'warning');
+          // Mevcut bakiyeyi al
+          const currentBalance = await provider.getBalance(wallet.address);
           
-          if (retryCount < MAX_RETRIES) {
-            log(`Yeniden deneniyor (${retryCount + 1}/${MAX_RETRIES})...`, 'warning');
-            setTimeout(() => performClaim(retryCount + 1, lowerGasPrice), 10000);
-          } else {
-            log('Maksimum yeniden deneme sayısına ulaşıldı. Bir sonraki claim işlemine geçiliyor...', 'warning');
-            claimCount++;
-            setTimeout(() => performClaim(0, gasPrice), CLAIM_INTERVAL);
+          // Bakiyeye göre gas fiyatını hesapla - bakiyenin %80'ini kullan
+          if (currentBalance.gt(0)) {
+            const affordableGasPrice = currentBalance.mul(8).div(10).div(GAS_LIMIT);
+            
+            if (affordableGasPrice.gt(ethers.utils.parseUnits('0.0000000001', 'ether'))) {
+              log(`Gas fiyatını bakiyeye göre ayarlıyorum: ${ethers.utils.formatEther(affordableGasPrice)} ETH`, 'warning');
+              
+              if (retryCount < MAX_RETRIES) {
+                log(`Yeniden deneniyor (${retryCount + 1}/${MAX_RETRIES})...`, 'warning');
+                setTimeout(() => performClaim(retryCount + 1, affordableGasPrice), 10000);
+                return;
+              }
+            }
           }
+          
+          // Eğer bu noktaya geldiysek, bakiye çok düşük veya max deneme sayısına ulaşıldı
+          log('Bir sonraki claim işlemine geçiliyor...', 'warning');
+          claimCount++;
+          setTimeout(() => performClaim(0, gasPrice), CLAIM_INTERVAL);
         } else {
           // Diğer hatalar için
           if (retryCount < MAX_RETRIES) {
