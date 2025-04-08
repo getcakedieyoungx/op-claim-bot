@@ -8,12 +8,29 @@ Bu bot, Optimism ağında her 61 saniyede bir token claim işlemi gerçekleştir
 
 - 61 saniyede bir otomatik claim işlemi
 - Toplam 888 claim işlemi yapabilme
-- Çok düşük gas ücretleriyle işlem yapma
-- Hata durumunda otomatik yeniden deneme
+- Süper düşük gas ücretleriyle işlem yapma (0.00000063 ETH)
+- Nonce yönetimi ve otomatik artırma
+- Hata durumunda otomatik yeniden deneme ve gas fiyatını düşürme
 - Renkli ve detaylı konsolda loglama
 - Log dosyalarına kayıt tutma
 - İstatistik bilgilerini görüntüleme
 - İşlem takibi ve zaman aşımı koruması
+
+## Hatalar ve Çözümleri
+
+### Yetersiz Bakiye Hatası
+
+Eğer aşağıdaki gibi bir hata alırsanız:
+
+```
+[✗] Claim işlemi sırasında hata oluştu: insufficient funds for intrinsic transaction cost
+```
+
+Bu, cüzdanınızda işlem ücretleri için yeterli ETH olmadığı anlamına gelir. Optimism ağında işlemler çok ucuz olsa da, yine de bir miktar ETH'ye ihtiyacınız vardır. Cüzdanınıza biraz OP ETH eklemelisiniz.
+
+### Nonce Hatası
+
+Eğer işlem nonce hatası alırsanız, `.env` dosyasında `INITIAL_NONCE` değerini MetaMask'tan görebileceğiniz mevcut nonce değeri ile ayarlayın.
 
 ## Gereksinimler
 
@@ -34,11 +51,14 @@ Bu bot, Optimism ağında her 61 saniyede bir token claim işlemi gerçekleştir
 [🔧] Token adresi: 0x4a05d55ead18a25838a8fec6f3879f4110ffedbb
 [🔧] Claim aralığı: 61 saniye
 [🔧] Hedef claim sayısı: 888
+[🔧] Gas limiti: 70000
+[🔧] Gas fiyatı: 0.00000063 ETH
+[💎] ETH bakiyesi: 0.003 ETH
 [💎] Başlangıç bakiyesi: 4.0 token
 [🔧] İlk claim işlemi başlatılıyor...
 [🔄] Claim işlemi #1/888 başlatılıyor...
-[💰] İşlem gönderildi: 0xd02a3c033aad153fe0cb4d5fb7dcae9236a9db919fe25ec8952b6ffb5ac03f7c
-[✓] İşlem onaylandı! Blok: 134281024, Gas: 0.00001532 ETH
+[💰] İşlem gönderildi: 0xd02a3c033aad153fe0cb4d5fb7dcae9236a9db919fe25ec8952b6ffb5ac03f7c (Nonce: 40)
+[✓] İşlem onaylandı! Blok: 134281024, Gas: 0.0000044 ETH
 [💎] Güncel bakiye: 5.0 token
 [i] Bir sonraki claim zamanı: 10:28:17
 ```
@@ -68,6 +88,7 @@ cp .env.example .env
 
 ```
 PRIVATE_KEY=senin_private_key_buraya_yazılacak
+INITIAL_NONCE=40  # İsteğe bağlı: MetaMask'tan görülen nonce değeri
 ```
 
 ## Kullanım
@@ -82,7 +103,7 @@ Bot çalışmaya başladığında:
 - Her claim işleminin durumu renkli loglarla takip edilir
 - 'logs' klasöründe her çalıştırma için log dosyası oluşturulur
 - Her 10 claimde bir istatistik raporu gösterilir
-- Hata durumlarında otomatik yeniden deneme yapılır
+- Hata durumlarında otomatik yeniden deneme yapılır ve gas fiyatı düşürülür
 
 ## İstatistikler
 
@@ -96,7 +117,7 @@ Bot, aşağıdaki istatistikleri gösterir:
 ✅ Başarılı Claimler:  10
 ❌ Başarısız Claimler: 0
 🔄 Toplam Claimler:    10
-⛽ Toplam Gas:         0.000153 ETH
+⛽ Toplam Gas:         0.000044 ETH
 💰 Kazanılan Token:    10.0 token
 ══════════════════════════════════════
 ```
