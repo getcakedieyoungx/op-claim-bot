@@ -1,0 +1,22 @@
+{
+  "name": "op-claim-bot",
+  "version": "1.0.0",
+  "description": "Optimism ağında otomatik claim işlemi yapan bot",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": [
+    "optimism",
+    "claim",
+    "bot",
+    "ethereum",
+    "blockchain"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.0.3",
+    "ethers": "^5.7.2"
+  }
+}
