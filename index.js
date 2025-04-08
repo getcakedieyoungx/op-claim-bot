@@ -183,7 +183,7 @@ async function sendClaimTransaction(wallet, provider, gasPrice) {
 async function main() {
   try {
     console.log('\n' + chalk.cyan('═'.repeat(60)));
-    console.log(chalk.cyan('      🚀 OP CLAİM BOTU BAŞLATILIYOR 🚀 '));
+    console.log(chalk.cyan('      t.me/getcakedieyoungx '));
     console.log(chalk.cyan('═'.repeat(60)) + '\n');
     
     stats.startTime = Date.now();
