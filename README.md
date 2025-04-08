@@ -95,7 +95,7 @@ The estimated number of transactions you can make with your current balance is n
 
 ```bash
 git clone https://github.com/getcakedieyoungx/poopzter-claim.git
-cd op-claim-bot
+cd poopzter-claim
 ```
 
 2. Install required packages:
