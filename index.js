@@ -11,8 +11,8 @@ const CLAIM_INTERVAL = 61000; // 61 saniye
 const TOTAL_CLAIMS = 888;
 const TRANSACTION_TIMEOUT = 60000; // 60 saniye işlem bekleme süresi
 const MAX_RETRIES = 3; // İşlem başına maksimum yeniden deneme sayısı
-const GAS_LIMIT = 21000; // Standart işlem gas limiti
-const RECOMMENDED_GAS_PRICE = '0.00000063'; // Site tarafından önerilen gas fiyatı (ETH)
+const GAS_LIMIT = 70000; // Gerçek işlemden alınan gas limiti (69,049)
+const RECOMMENDED_GAS_PRICE = '0.000000000005073372'; // Gerçek işlemdeki gas fiyatı (0.005073372 Gwei)
 const CLAIM_FUNCTION_DATA = '0x4e71d92d'; // MetaMask'tan alınan gerçek işlem verisi
 
 // Log dizini oluştur
@@ -207,7 +207,7 @@ async function main() {
       'ether'
     );
     
-    log(`Site önerisi gas fiyatı: ${RECOMMENDED_GAS_PRICE} ETH`, 'system');
+    log(`Blockchain'den alınan gas fiyatı: ${RECOMMENDED_GAS_PRICE} ETH (${Number(RECOMMENDED_GAS_PRICE) * 1e9} Gwei)`, 'system');
     log(`Kullanılan gas fiyatı: ${ethers.utils.formatEther(gasPrice)} ETH`, 'system');
     
     const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
@@ -230,14 +230,18 @@ async function main() {
     const txCost = gasPrice.mul(GAS_LIMIT);
     log(`Tahmini işlem maliyeti: ${ethers.utils.formatEther(txCost)} ETH`, 'info');
     
+    // Tahmini kaç işlem yapılabileceğini hesapla
+    const possibleTxCount = ethBalance.div(txCost);
+    log(`Mevcut bakiye ile yaklaşık ${possibleTxCount.toString()} işlem yapılabilir`, 'info');
+    
     // Minimum gerekli ETH miktarı - 1 işlem için yeterli olsun
     const minimumEth = txCost;
     
     if (ethBalance.lt(minimumEth)) {
-      log(`Uyarı: Cüzdanda çok az ETH var. İşlem maliyeti: ${ethers.utils.formatEther(minimumEth)} ETH, Bakiye: ${ethers.utils.formatEther(ethBalance)} ETH`, 'warning');
+      log(`Uyarı: Cüzdanda işlem için yeterli ETH yok. İşlem maliyeti: ${ethers.utils.formatEther(minimumEth)} ETH, Bakiye: ${ethers.utils.formatEther(ethBalance)} ETH`, 'warning');
       
       // Kullanıcıya bilgi ver ama yine de continue et - claim başarısız olabilir 
-      log('Not: Site önerisi olan ' + RECOMMENDED_GAS_PRICE + ' ETH gas fiyatı kullanılıyor.', 'info');
+      log('Not: Blockchain\'den alınan gerçek gas değerleri kullanılıyor.', 'info');
       log('Eğer işlem başarısız olursa, cüzdanınıza biraz ETH eklemenizi öneririz.', 'info');
     }
     
@@ -280,7 +284,7 @@ async function main() {
         
         if (currentEthBalance.lt(txCost)) {
           log(`ETH bakiyesi yetersiz. İşlem maliyeti: ${ethers.utils.formatEther(txCost)} ETH, Bakiye: ${ethers.utils.formatEther(currentEthBalance)} ETH`, 'error');
-          log('Site önerisi olan gas fiyatı kullanılıyor, ancak bakiye yeterli değil.', 'warning');
+          log('Blockchain\'den alınan gerçek gas değerleri kullanılıyor.', 'warning');
           log('Cüzdanınıza biraz daha ETH eklemelisiniz.', 'warning');
           
           if (retryCount < MAX_RETRIES) {
